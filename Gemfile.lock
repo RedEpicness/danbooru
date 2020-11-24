@@ -89,6 +89,7 @@ GEM
     aws-sigv4 (1.2.2)
       aws-eventstream (~> 1, >= 1.0.2)
     bcrypt (3.1.16)
+    bcrypt_pbkdf (1.0.1)
     bootsnap (1.5.1)
       msgpack (~> 1.0)
     builder (3.2.4)
@@ -140,6 +141,7 @@ GEM
     dotenv-rails (2.7.6)
       dotenv (= 2.7.6)
       railties (>= 3.2)
+    ed25519 (1.2.4)
     erubi (1.9.0)
     factory_bot (6.1.0)
       activesupport (>= 5.0.0)
@@ -384,6 +386,7 @@ DEPENDENCIES
   addressable
   aws-sdk-sqs (~> 1)
   bcrypt
+  bcrypt_pbkdf (>= 1.0, < 2.0)
   bootsnap
   builder
   capistrano (~> 3.10)
@@ -399,6 +402,7 @@ DEPENDENCIES
   diff-lcs
   dotenv-rails
   dtext_rb!
+  ed25519 (>= 1.2, < 2.0)
   factory_bot
   ffaker
   flamegraph
