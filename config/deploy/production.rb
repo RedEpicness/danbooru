@@ -8,5 +8,5 @@ server "fribooru", :roles => %w(web app cron worker), :primary => true
 #server "saitou", :roles => %w(web app)
 #server "oogaki", :roles => %w(worker)
 
-set :newrelic_appname, "Danbooru"
+set :newrelic_appname, "FRIbooru"
 after "deploy:finished", "newrelic:notice_deployment"
