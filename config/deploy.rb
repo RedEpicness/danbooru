@@ -7,7 +7,7 @@ append :linked_dirs, "log", "tmp/pids", "tmp/cache", "tmp/sockets", "vendor/bund
 set :branch, ENV.fetch("branch", "master")
 
 # skip migrations if files in db/migrate weren't modified
-set :conditionally_migrate, true
+set :conditionally_migrate, false
 
 # run migrations on the primary app server
 set :migration_role, :app
