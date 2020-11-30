@@ -45,9 +45,6 @@ module Danbooru
     config.plugins = [:all]
     config.time_zone = 'Ljubljana'
 
-    #config.action_controller.allow_forgery_protection = false
-    #config.action_controller.forgery_protection_origin_check = false
-
     raise "Danbooru.config.secret_key_base not configured" if Danbooru.config.secret_key_base.blank?
     config.secret_key_base = Danbooru.config.secret_key_base
 

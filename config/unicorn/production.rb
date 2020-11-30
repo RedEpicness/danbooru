@@ -5,8 +5,8 @@ app_path = "/var/www/danbooru2/current"
 worker_processes 20
 
 timeout 180
-listen 9000, :tcp_nopush => true
-# listen "/tmp/.unicorn.sock", backlog: 1024
+# listen 9000, :tcp_nopush => true
+listen "/tmp/.unicorn.sock", backlog: 1024
 
 # Spawn unicorn master worker for user apps (group: apps)
 user 'danbooru', 'danbooru'
