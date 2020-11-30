@@ -46,7 +46,7 @@ module Danbooru
     config.time_zone = 'Ljubljana'
 
     #config.action_controller.allow_forgery_protection = false
-    config.action_controller.forgery_protection_origin_check = false
+    #config.action_controller.forgery_protection_origin_check = false
 
     raise "Danbooru.config.secret_key_base not configured" if Danbooru.config.secret_key_base.blank?
     config.secret_key_base = Danbooru.config.secret_key_base
@@ -60,7 +60,7 @@ module Danbooru
     end
 
     config.log_tags = [->(req) {"PID:#{Process.pid}"}]
-    #config.action_controller.action_on_unpermitted_parameters = :raise
+    config.action_controller.action_on_unpermitted_parameters = :raise
 
     if File.exist?("#{config.root}/REVISION")
       config.x.git_hash = File.read("#{config.root}/REVISION").strip
