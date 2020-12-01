@@ -1411,27 +1411,29 @@ class Post < ApplicationRecord
     end
 
     def has_artist_tag
-      return if !new_record?
-      return if source !~ %r!\Ahttps?://!
-      return if has_tag?("artist_request") || has_tag?("official_art")
-      return if tags.any?(&:artist?)
-      return if Sources::Strategies.find(source).is_a?(Sources::Strategies::Null)
+      return
+      #return if !new_record?
+      #return if source !~ %r!\Ahttps?://!
+      #return if has_tag?("artist_request") || has_tag?("official_art")
+      #return if tags.any?(&:artist?)
+      #return if Sources::Strategies.find(source).is_a?(Sources::Strategies::Null)
 
-      self.warnings[:base] << "Artist tag is required. \"Create new artist tag\":[/artists/new?artist%5Bsource%5D=#{CGI.escape(source)}]. Ask on the forum if you need naming help"
+      #self.warnings[:base] << "Artist tag is required. \"Create new artist tag\":[/artists/new?artist%5Bsource%5D=#{CGI.escape(source)}]. Ask on the forum if you need naming help"
     end
 
     def has_copyright_tag
-      return if !new_record?
-      return if has_tag?("copyright_request") || tags.any?(&:copyright?)
+      return
+      #return if !new_record?
+      #return if has_tag?("copyright_request") || tags.any?(&:copyright?)
 
-      self.warnings[:base] << "Copyright tag is required. Consider adding [[copyright request]] or [[original]]"
+      #self.warnings[:base] << "Copyright tag is required. Consider adding [[copyright request]] or [[original]]"
     end
 
     def has_enough_tags
       return if !new_record?
 
-      if tags.count(&:general?) < 10
-        self.warnings[:base] << "Uploads must have at least 10 general tags. Read [[howto:tag]] for guidelines on tagging your uploads"
+      if tags.count(&:general?) < 3
+        self.warnings[:base] << "Uploads must have at least 3 general tags."
       end
     end
   end
