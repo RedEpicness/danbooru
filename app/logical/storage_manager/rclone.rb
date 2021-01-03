@@ -30,6 +30,6 @@ class StorageManager::Rclone < StorageManager
   end
 
   def key(path)
-    ":#{remote}:#{bucket}#{path}"
+    "#{remote}:#{bucket}#{path}"
   end
 end
