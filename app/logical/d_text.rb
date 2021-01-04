@@ -90,7 +90,7 @@ class DText
 
   def self.tag_request_message(obj)
     if obj.is_a?(TagRelationship)
-      if obj.is_approved?
+      if obj.is_active?
         "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] has been approved."
       elsif obj.is_retired?
         "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] has been retired."
@@ -98,8 +98,6 @@ class DText
         "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] has been rejected."
       elsif obj.is_pending?
         "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] is pending approval."
-      elsif obj.is_errored?
-        "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] (#{relationship} failed during processing."
       else # should never happen
         "The #{obj.relationship} ##{obj.id} [[#{obj.antecedent_name}]] -> [[#{obj.consequent_name}]] has an unknown status."
       end
@@ -111,11 +109,11 @@ class DText
       end
 
       if obj.is_approved?
-        "The bulk update request ##{obj.id} is active.\n\n#{embedded_script}"
+        "The \"bulk update request ##{obj.id}\":#{Routes.bulk_update_request_path(obj)} has been approved by <@#{obj.approver.name}>.\n\n#{embedded_script}"
       elsif obj.is_pending?
-        "The \"bulk update request ##{obj.id}\":/bulk_update_requests/#{obj.id} is pending approval.\n\n#{embedded_script}"
+        "The \"bulk update request ##{obj.id}\":#{Routes.bulk_update_request_path(obj)} is pending approval.\n\n#{embedded_script}"
       elsif obj.is_rejected?
-        "The bulk update request ##{obj.id} has been rejected.\n\n#{embedded_script}"
+        "The \"bulk update request ##{obj.id}\":#{Routes.bulk_update_request_path(obj)} has been rejected.\n\n#{embedded_script}"
       end
     end
   end

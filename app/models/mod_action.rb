@@ -41,13 +41,13 @@ class ModAction < ApplicationRecord
     forum_post_update: 101,
     forum_post_delete: 102,
     tag_alias_create: 120,
-    tag_alias_update: 121,
+    tag_alias_update: 121, # XXX unused
     tag_implication_create: 140,
-    tag_implication_update: 141,
+    tag_implication_update: 141, # XXX unused
     ip_ban_create: 160,
     ip_ban_delete: 162,
     ip_ban_undelete: 163,
-    mass_update: 1000,
+    mass_update: 1000, # XXX unused
     bulk_revert: 1001, # XXX unused
     other: 2000
   }
@@ -61,9 +61,7 @@ class ModAction < ApplicationRecord
   end
 
   def self.search(params)
-    q = super
-
-    q = q.search_attributes(params, :category, :description)
+    q = search_attributes(params, :id, :created_at, :updated_at, :category, :description, :creator)
     q = q.text_attribute_matches(:description, params[:description_matches])
 
     q.apply_default_order(params)
@@ -75,10 +73,6 @@ class ModAction < ApplicationRecord
 
   def self.log(desc, cat = :other, user = CurrentUser.user)
     create(creator: user, description: desc, category: categories[cat])
-  end
-
-  def self.searchable_includes
-    [:creator]
   end
 
   def self.available_includes

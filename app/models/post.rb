@@ -20,6 +20,7 @@ class Post < ApplicationRecord
   before_validation :remove_parent_loops
   validates_uniqueness_of :md5, :on => :create, message: ->(obj, data) { "duplicate: #{Post.find_by_md5(obj.md5).id}"}
   validates_inclusion_of :rating, in: %w(s q e), message: "rating must be s, q, or e"
+  validates :source, length: { maximum: 1200 }
   validate :added_tags_are_valid
   validate :removed_tags_are_valid
   validate :has_artist_tag
@@ -478,7 +479,7 @@ class Post < ApplicationRecord
       normalized_tags = add_automatic_tags(normalized_tags)
       normalized_tags = remove_invalid_tags(normalized_tags)
       normalized_tags = Tag.convert_cosplay_tags(normalized_tags)
-      normalized_tags += Tag.create_for_list(TagImplication.automatic_tags_for(normalized_tags))
+      normalized_tags += Tag.create_for_list(Tag.automatic_tags_for(normalized_tags))
       normalized_tags += TagImplication.tags_implied_by(normalized_tags).map(&:name)
       normalized_tags = normalized_tags.compact.uniq.sort
       normalized_tags = Tag.create_for_list(normalized_tags)
@@ -490,7 +491,7 @@ class Post < ApplicationRecord
 
       invalid_tags.each do |tag|
         tag.errors.messages.each do |attribute, messages|
-          warnings[:base] << "Couldn't add tag: #{messages.join(';')}"
+          warnings.add(:base, "Couldn't add tag: #{messages.join(';')}")
         end
       end
 
@@ -976,7 +977,7 @@ class Post < ApplicationRecord
   module DeletionMethods
     def expunge!
       if is_status_locked?
-        self.errors.add(:is_status_locked, "; cannot delete post")
+        errors.add(:is_status_locked, "; cannot delete post")
         return false
       end
 
@@ -1082,11 +1083,11 @@ class Post < ApplicationRecord
     def copy_notes_to(other_post, copy_tags: NOTE_COPY_TAGS)
       transaction do
         if id == other_post.id
-          errors.add :base, "Source and destination posts are the same"
+          errors.add(:base, "Source and destination posts are the same")
           return false
         end
         unless has_notes?
-          errors.add :post, "has no notes"
+          errors.add(:post, "has no notes")
           return false
         end
 
@@ -1289,14 +1290,17 @@ class Post < ApplicationRecord
     end
 
     def search(params)
-      q = super
-
-      q = q.search_attributes(
+      q = search_attributes(
         params,
-        :rating, :source, :pixiv_id, :fav_count, :score, :up_score, :down_score, :md5, :file_ext,
-        :file_size, :image_width, :image_height, :tag_count, :has_children, :has_active_children,
-        :is_note_locked, :is_rating_locked, :is_status_locked, :is_pending, :is_flagged, :is_deleted,
-        :is_banned, :last_comment_bumped_at, :last_commented_at, :last_noted_at
+        :id, :created_at, :updated_at, :rating, :source, :pixiv_id, :fav_count,
+        :score, :up_score, :down_score, :md5, :file_ext, :file_size, :image_width,
+        :image_height, :tag_count, :has_children, :has_active_children,
+        :is_note_locked, :is_rating_locked, :is_status_locked, :is_pending,
+        :is_flagged, :is_deleted, :is_banned, :last_comment_bumped_at,
+        :last_commented_at, :last_noted_at, :uploader_ip_addr,
+        :uploader, :updater, :approver, :parent, :upload, :artist_commentary,
+        :flags, :appeals, :notes, :comments, :children, :approvals,
+        :replacements, :pixiv_ugoira_frame_data
       )
 
       if params[:tags].present?
@@ -1357,8 +1361,7 @@ class Post < ApplicationRecord
   module ValidationMethods
     def post_is_not_its_own_parent
       if !new_record? && id == parent_id
-        errors[:base] << "Post cannot have itself as a parent"
-        false
+        errors.add(:base, "Post cannot have itself as a parent")
       end
     end
 
@@ -1372,30 +1375,23 @@ class Post < ApplicationRecord
     end
 
     def uploader_is_not_limited
-      errors[:uploader] << uploader.upload_limit.limit_reason if uploader.upload_limit.limited?
+      errors.add(:uploader, uploader.upload_limit.limit_reason) if uploader.upload_limit.limited?
     end
 
     def added_tags_are_valid
       new_tags = added_tags.select(&:empty?)
-      new_general_tags = new_tags.select(&:general?)
-      new_artist_tags = new_tags.select(&:artist?)
-      repopulated_tags = new_tags.select { |t| !t.general? && !t.meta? && (t.created_at < 1.hour.ago) }
+      new_artist_tags, new_general_tags = new_tags.partition(&:artist?)
 
       if new_general_tags.present?
         n = new_general_tags.size
         tag_wiki_links = new_general_tags.map { |tag| "[[#{tag.name}]]" }
-        self.warnings[:base] << "Created #{n} new #{(n == 1) ? "tag" : "tags"}: #{tag_wiki_links.join(", ")}"
-      end
-
-      if repopulated_tags.present?
-        n = repopulated_tags.size
-        tag_wiki_links = repopulated_tags.map { |tag| "[[#{tag.name}]]" }
-        self.warnings[:base] << "Repopulated #{n} old #{(n == 1) ? "tag" : "tags"}: #{tag_wiki_links.join(", ")}"
+        warnings.add(:base, "Created #{n} new #{(n == 1) ? "tag" : "tags"}: #{tag_wiki_links.join(", ")}")
       end
 
       new_artist_tags.each do |tag|
         if tag.artist.blank?
-          self.warnings[:base] << "Artist [[#{tag.name}]] requires an artist entry. \"Create new artist entry\":[/artists/new?artist%5Bname%5D=#{CGI.escape(tag.name)}]"
+          new_artist_path = Routes.new_artist_path(artist: { name: tag.name })
+          warnings.add(:base, "Artist [[#{tag.name}]] requires an artist entry. \"Create new artist entry\":[#{new_artist_path}]")
         end
       end
     end
@@ -1406,7 +1402,7 @@ class Post < ApplicationRecord
 
       if unremoved_tags.present?
         unremoved_tags_list = unremoved_tags.map { |t| "[[#{t}]]" }.to_sentence
-        self.warnings[:base] << "#{unremoved_tags_list} could not be removed. Check for implications and try again"
+        warnings.add(:base, "#{unremoved_tags_list} could not be removed. Check for implications and try again")
       end
     end
 
@@ -1418,7 +1414,8 @@ class Post < ApplicationRecord
       #return if tags.any?(&:artist?)
       #return if Sources::Strategies.find(source).is_a?(Sources::Strategies::Null)
 
-      #self.warnings[:base] << "Artist tag is required. \"Create new artist tag\":[/artists/new?artist%5Bsource%5D=#{CGI.escape(source)}]. Ask on the forum if you need naming help"
+      #new_artist_path = Routes.new_artist_path(artist: { source: source })
+      #warnings.add(:base, "Artist tag is required. \"Create new artist tag\":[#{new_artist_path}]. Ask on the forum if you need naming help")
     end
 
     def has_copyright_tag
@@ -1426,14 +1423,14 @@ class Post < ApplicationRecord
       #return if !new_record?
       #return if has_tag?("copyright_request") || tags.any?(&:copyright?)
 
-      #self.warnings[:base] << "Copyright tag is required. Consider adding [[copyright request]] or [[original]]"
+      #warnings.add(:base, "Copyright tag is required. Consider adding [[copyright request]] or [[original]]")
     end
 
     def has_enough_tags
       return if !new_record?
 
       if tags.count(&:general?) < 3
-        self.warnings[:base] << "Uploads must have at least 3 general tags."
+        warnings.add(:base, "Uploads should have at least 3 general tags. Read [[howto:tag]] for guidelines on tagging your uploads")
       end
     end
   end
@@ -1508,10 +1505,6 @@ class Post < ApplicationRecord
 
   def self.model_restriction(table)
     super.where(table[:is_pending].eq(false)).where(table[:is_flagged].eq(false)).where(table[:is_deleted].eq(false))
-  end
-
-  def self.searchable_includes
-    [:uploader, :updater, :approver, :parent, :upload, :artist_commentary, :flags, :appeals, :notes, :comments, :children, :approvals, :replacements, :pixiv_ugoira_frame_data]
   end
 
   def self.available_includes

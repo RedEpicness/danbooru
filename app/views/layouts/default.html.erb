@@ -7,7 +7,7 @@
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
   <%= render "meta_links", collection: @current_item %>
   <%= tag.link rel: "canonical", href: canonical_url %>
-  <%= tag.link rel: "search", type: "application/opensearchdescription+xml", href: opensearch_url(format: :xml, version: 1), title: "Search posts" %>
+  <%= tag.link rel: "search", type: "application/opensearchdescription+xml", href: opensearch_url(format: :xml, version: 2), title: "Search posts" %>
 
   <%= csrf_meta_tag %>
   <% unless CurrentUser.enable_desktop_mode? %>
@@ -47,16 +47,16 @@
   <%= raw Danbooru.config.custom_html_header_content %>
 </head>
 <%= tag.body **body_attributes(CurrentUser.user, params, @current_item) do %>
-  <%#= render "news_updates/listing" %>
+  <%= render "news_updates/listing" %>
 
   <header id="top">
     <%= link_to Danbooru.config.app_name, root_path, id: "app-name-header", class: "heading" %>
-    
+
     <div id="maintoggle" class="mobile-only">
       <a href="#"><i id="maintoggle-on" class="fas fa-bars"></i></a>
       <a href="#"><i id="maintoggle-off" class="fas fa-times" style="display: none;"></i></a>
     </div>
-    
+
     <nav id="nav">
       <%= render "layouts/main_links" %>
       <% if content_for(:secondary_links).present? %>

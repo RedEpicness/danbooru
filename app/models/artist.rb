@@ -156,7 +156,7 @@ class Artist < ApplicationRecord
       return unless !is_deleted? && name_changed? && tag.present?
 
       if tag.category_name != "Artist" && !tag.empty?
-        errors[:base] << "'#{name}' is a #{tag.category_name.downcase} tag; artist entries can only be created for artist tags"
+        errors.add(:base, "'#{name}' is a #{tag.category_name.downcase} tag; artist entries can only be created for artist tags")
       end
     end
 
@@ -192,8 +192,8 @@ class Artist < ApplicationRecord
 
         # potential race condition but unlikely
         unless TagImplication.where(:antecedent_name => name, :consequent_name => "banned_artist").exists?
-          tag_implication = TagImplication.create!(antecedent_name: name, consequent_name: "banned_artist", skip_secondary_validations: true, creator: banner)
-          tag_implication.approve!(banner)
+          Tag.find_or_create_by_name("artist:banned_artist") # ensure the banned_artist exists and is an artist tag.
+          TagImplication.approve!(antecedent_name: name, consequent_name: "banned_artist", approver: banner)
         end
 
         update!(is_banned: true)
@@ -203,6 +203,10 @@ class Artist < ApplicationRecord
   end
 
   module SearchMethods
+    def name_matches(query)
+      where_like(:name, normalize_name(query))
+    end
+
     def any_other_name_matches(regex)
       where(id: Artist.from("unnest(other_names) AS other_name").where_regex("other_name", regex))
     end
@@ -246,9 +250,7 @@ class Artist < ApplicationRecord
     end
 
     def search(params)
-      q = super
-
-      q = q.search_attributes(params, :is_deleted, :is_banned, :name, :group_name, :other_names)
+      q = search_attributes(params, :id, :created_at, :updated_at, :is_deleted, :is_banned, :name, :group_name, :other_names, :urls, :wiki_page, :tag_alias, :tag)
 
       if params[:any_other_name_like]
         q = q.any_other_name_like(params[:any_other_name_like])
@@ -291,10 +293,6 @@ class Artist < ApplicationRecord
 
   def self.model_restriction(table)
     super.where(table[:is_deleted].eq(false))
-  end
-
-  def self.searchable_includes
-    [:urls, :wiki_page, :tag_alias, :tag]
   end
 
   def self.available_includes

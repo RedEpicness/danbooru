@@ -26,7 +26,8 @@ class UsersController < ApplicationController
 
   def index
     if params[:name].present?
-      @user = User.find_by_name!(params[:name])
+      @user = User.find_by_name(params[:name])
+      raise ActiveRecord::RecordNotFound if @user.blank?
       redirect_to user_path(@user, variant: params[:variant])
       return
     end
@@ -35,9 +36,6 @@ class UsersController < ApplicationController
     @users = @users.includes(:inviter) if request.format.html?
 
     respond_with(@users)
-  end
-
-  def search
   end
 
   def show
@@ -61,7 +59,7 @@ class UsersController < ApplicationController
   end
 
   def create
-    requires_verification = IpLookup.new(CurrentUser.ip_addr).is_proxy? || IpBan.hit!(:partial, CurrentUser.ip_addr)
+    requires_verification = UserVerifier.new(CurrentUser.user, request).requires_verification?
 
     @user = authorize User.new(
       last_ip_addr: CurrentUser.ip_addr,
@@ -79,7 +77,7 @@ class UsersController < ApplicationController
       flash[:notice] = "Sign up failed"
     elsif @user.email_address&.invalid?(:deliverable)
       flash[:notice] = "Sign up failed: email address is invalid or doesn't exist"
-      @user.errors[:base] << @user.email_address.errors.full_messages.join("; ")
+      @user.errors.add(:base, @user.email_address.errors.full_messages.join("; "))
     elsif !@user.save
       flash[:notice] = "Sign up failed: #{@user.errors.full_messages.join("; ")}"
     else

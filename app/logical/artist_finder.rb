@@ -44,6 +44,7 @@ module ArtistFinder
     "fantia.jp/fanclubs", # https://fantia.jp/fanclubs/1711
     "fav.me", # http://fav.me/d9y1njg
     /blog-imgs-\d+(?:-origin)?\.fc2\.com/i,
+    %r{blog\.fc2\.com(/\w)+/?}i, # http://blog71.fc2.com/a/abk00/file/20080220194219.jpg
     "furaffinity.net",
     "furaffinity.net/user", # http://www.furaffinity.net/user/achthenuts
     "gelbooru.com", # http://gelbooru.com/index.php?page=account&s=profile&uname=junou
@@ -59,6 +60,7 @@ module ArtistFinder
     "iwara.tv/users", # http://ecchi.iwara.tv/users/marumega
     "kym-cdn.com",
     "livedoor.blogimg.jp",
+    "blog.livedoor.jp", # http://blog.livedoor.jp/ac370ml
     "monappy.jp",
     "monappy.jp/u", # https://monappy.jp/u/abara_bone
     "mstdn.jp", # https://mstdn.jp/@oneb

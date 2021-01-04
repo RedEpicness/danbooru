@@ -66,6 +66,7 @@ class ArtistTest < ActiveSupport::TestCase
         @post = FactoryBot.create(:post, :tag_string => "aaa")
         @admin = FactoryBot.create(:admin_user)
         @artist.ban!(banner: @admin)
+        perform_enqueued_jobs
         @post.reload
       end
 
@@ -93,7 +94,6 @@ class ArtistTest < ActiveSupport::TestCase
       end
 
       should "create a new tag implication" do
-        perform_enqueued_jobs
         assert_equal(1, TagImplication.where(:antecedent_name => "aaa", :consequent_name => "banned_artist").count)
         assert_equal("aaa banned_artist", @post.reload.tag_string)
       end
@@ -360,6 +360,20 @@ class ArtistTest < ActiveSupport::TestCase
 
       should "return nothing for unknown tumblr artists" do
         assert_artist_not_found("https://peptosis.tumblr.com/post/168162082005")
+      end
+    end
+
+    context "when finding fc2.com artists" do
+      setup do
+        create(:artist, name: "awa", url_string: "http://abk00.blog.fc2.com")
+      end
+
+      should "find the artist" do
+        assert_artist_found("awa", "http://blog71.fc2.com/a/abk00/file/20080220194219.jpg")
+      end
+
+      should "return nothing for an unknown artist" do
+        assert_artist_not_found("http://blog71.fc2.com/a/nobody/file/20080220194219.jpg")
       end
     end
 

@@ -1,7 +1,6 @@
 class BulkUpdateRequest < ApplicationRecord
   attr_accessor :title
   attr_accessor :reason
-  attr_reader :skip_secondary_validations
 
   belongs_to :user
   belongs_to :forum_topic, optional: true
@@ -32,9 +31,7 @@ class BulkUpdateRequest < ApplicationRecord
     end
 
     def search(params = {})
-      q = super
-
-      q = q.search_attributes(params, :script, :tags)
+      q = search_attributes(params, :id, :created_at, :updated_at, :script, :tags, :user, :forum_topic, :forum_post, :approver)
       q = q.text_attribute_matches(:script, params[:script_matches])
 
       if params[:status].present?
@@ -61,28 +58,17 @@ class BulkUpdateRequest < ApplicationRecord
 
   module ApprovalMethods
     def forum_updater
-      @forum_updater ||= begin
-        post = if forum_topic
-          forum_post || forum_topic.forum_posts.first
-        else
-          nil
-        end
-        ForumUpdater.new(forum_topic, forum_post: post)
-      end
+      @forum_updater ||= ForumUpdater.new(forum_topic)
     end
 
     def approve!(approver)
       transaction do
         CurrentUser.scoped(approver) do
+          processor.validate!(:approval)
           processor.process!(approver)
-          update!(status: "approved", approver: approver, skip_secondary_validations: true)
+          update!(status: "approved", approver: approver)
           forum_updater.update("The #{bulk_update_request_link} (forum ##{forum_post.id}) has been approved by @#{approver.name}.")
         end
-      end
-    rescue BulkUpdateRequestProcessor::Error => x
-      self.approver = approver
-      CurrentUser.scoped(approver) do
-        forum_updater.update("The #{bulk_update_request_link} (forum ##{forum_post.id}) has failed: #{x}")
       end
     end
 
@@ -103,13 +89,13 @@ class BulkUpdateRequest < ApplicationRecord
     end
 
     def bulk_update_request_link
-      %{"bulk update request ##{id}":/bulk_update_requests?search%5Bid%5D=#{id}}
+      %{"bulk update request ##{id}":#{Routes.bulk_update_requests_path(search: { id: id })}}
     end
   end
 
   def validate_script
-    if processor.invalid?
-      errors[:base] << processor.errors.full_messages.join("; ")
+    if processor.invalid?(:request)
+      errors.add(:base, processor.errors.full_messages.join("; "))
     end
   end
 
@@ -118,10 +104,6 @@ class BulkUpdateRequest < ApplicationRecord
 
   def update_tags
     self.tags = processor.affected_tags
-  end
-
-  def skip_secondary_validations=(v)
-    @skip_secondary_validations = v.to_s.truthy?
   end
 
   def processor
@@ -142,10 +124,6 @@ class BulkUpdateRequest < ApplicationRecord
 
   def is_rejected?
     status == "rejected"
-  end
-
-  def self.searchable_includes
-    [:user, :forum_topic, :forum_post, :approver]
   end
 
   def self.available_includes
